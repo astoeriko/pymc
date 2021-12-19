@@ -240,8 +240,12 @@ class SMC_KERNEL(ABC):
         while up_beta - low_beta > 1e-6:
             new_beta = (low_beta + up_beta) / 2.0
             log_weights_un = (new_beta - old_beta) * self.likelihood_logp
-            log_weights = log_weights_un - logsumexp(log_weights_un)
-            ESS = int(np.exp(-logsumexp(log_weights * 2)))
+            log_weights_un = np.where(np.isnan(log_weights_un), -np.inf, log_weights_un)
+            if np.isfinite(logsumexp(log_weights_un)):
+                log_weights = log_weights_un - logsumexp(log_weights_un)
+                ESS = int(np.exp(-logsumexp(log_weights * 2)))
+            else:
+                ESS = 0
             if ESS == rN:
                 break
             elif ESS < rN:
@@ -251,6 +255,7 @@ class SMC_KERNEL(ABC):
         if new_beta >= 1:
             new_beta = 1
             log_weights_un = (new_beta - old_beta) * self.likelihood_logp
+            log_weights_un = np.where(np.isnan(log_weights_un), -np.inf, log_weights_un)
             log_weights = log_weights_un - logsumexp(log_weights_un)
 
         self.beta = new_beta
